@@ -48,7 +48,7 @@ public class Main {
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(BASE_URI), rc);
     }
 
-//Hola que pasa
+
     /**
      * Main method.
      * @param args

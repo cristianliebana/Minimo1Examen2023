@@ -1,41 +1,34 @@
 package edu.upc.dsa;
 
-import edu.upc.dsa.models.Juego;
-import edu.upc.dsa.models.Objeto;
-import edu.upc.dsa.models.Partidas;
-import edu.upc.dsa.models.Usuarios;
-
-import java.util.List;
+import edu.upc.dsa.models.Equipo;
+import edu.upc.dsa.models.Producto;
+import edu.upc.dsa.models.Usuario;
 
 public interface GameManager {
+    void crearJuego(int numeroEquipos, int numeroPersonas); //Creacion del juego basado en N equipos de P personas
 
-    Juego createJuego (String idJuego, int equipos, int personas); //Crea el juego
+    void añadirUsuario(String id, String nombre, String apellido1, String apellido2); // Añadir un usuario al sistema
 
-    Usuarios addUsuario(String idUsuario, String nombre, String apellido1, String apellido2); //Añade al usuario
+    void añadirProducto(String id, String descripcion, double precio); // Añadir un producto (objecto) en la tienda
 
-    void addObject(String idObjeto, String descripcion, double precio); //Añade el objeto
+    Producto realizarCompra(String idProducto, String idUsuario); // Compra de un producto por parte de un usuario
 
-    Objeto realizarCompra(String idUsuario, String idObjeto); //Metodo para realizar una compra
+    void iniciarPartida(String idUsuario); // Inicio de una partida por parte de un usuario
 
-    Juego iniciarJuego(String idjuego, String idUsuario); //Inicia el Juego
+    String consultarEstado(); // Consulta el estado del juego
 
-    String getEstadoActual(String idUsuario); //Consulta el estado del juego
+    void actualizarVida(String idUsuario, int vida); // Actualización del valor de vida de un usuario
 
-    Juego restarVidas(String idjuego, int restavidas); //Actualización del valor de vida de un usuario
+    int consultarVida(String idUsuario);  // Consulta el valor de vida actual de un usuario
 
-    List<Juego> getVidasUsauario(String idUsuario); //Consulta de la vida de un usuario
+    int consultarVidaEquipo(String idEquipo); // Consulta el valor de vida de un equipo
 
-    List<Juego> getVidaEquipo(String nombreEquipo); //Consulta de la suma de la vida de todos los usuarios de un equipo
+    void finalizarJuego(); // Finalizar el juego
 
-    Usuarios finalizarPartida(String idUsuario);//Finaliza la partida
-
-
-    public Juego getJuego(String idJuego);
-    Usuarios getUsuario(String idUsuario);
-
-    Partidas getPartidasdeUsuario(String idUsuario);
-
-    Objeto getObjetoporNombre(String name);
+    //Metodos auxiliares
+    public Usuario getUsuario(String idUsuario);
+    public Producto getProducto(String idProducto);
+    public Equipo obtenerEquipo(String idEquipo);
 
 
 

@@ -1,13 +1,12 @@
 package edu.upc.dsa.models;
 
-public class Objeto {
-
-    public String getIdObjeto() {
-        return idObjeto;
+public class Producto {
+    public String getId() {
+        return id;
     }
 
-    public void setIdObjeto(String idObjeto) {
-        this.idObjeto = idObjeto;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getDescipcion() {
@@ -26,15 +25,16 @@ public class Objeto {
         this.precio = precio;
     }
 
-    String idObjeto;
+    String id;
     String descipcion;
     double precio;
 
-    public Objeto (String idObjeto, String descipcion, double precio) {
+    public Producto (String id, String descipcion, double precio) {
 
-        this.idObjeto=idObjeto;
+        this.id=id;
         this.descipcion=descipcion;
         this.precio=precio;
 
     }
+    public Producto(){} //Para hacer la magia
 }

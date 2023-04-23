@@ -1,17 +1,17 @@
 package edu.upc.dsa;
 
-import edu.upc.dsa.models.Juego;
-import edu.upc.dsa.models.Objeto;
-import edu.upc.dsa.models.Partidas;
-import edu.upc.dsa.models.Usuarios;
+import edu.upc.dsa.util.*;
+import edu.upc.dsa.models.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
-public class GameManagerImpl implements GameManager {
+
+public class GameManagerImpl implements GameManager{
 
     //Singleton
     public static GameManagerImpl getInstance(){
@@ -21,82 +21,93 @@ public class GameManagerImpl implements GameManager {
         return manager;
     }
     private static GameManagerImpl manager;
+
+    private Map<Integer, Usuario> usuarios;
+    private Map<Integer, Producto> productos;
+    private Map<Integer, Equipo> equipos;
+
+    private List<Partida> partidas;
+
+    private List<Equipo> listaEquipos;
+
+    private List<Usuario> listaUsuarios;
+
+    private List<Producto> listaProductos;
+
+
+    private EstadoJuego estado;
+
+    GameManagerImpl() {
+        usuarios = new HashMap<>();
+        productos = new HashMap<>();
+        equipos = new HashMap<>();
+        partidas = new ArrayList<>();
+        listaProductos = new ArrayList<>();
+        listaEquipos = new ArrayList<>();
+        listaUsuarios = new ArrayList<>();
+        estado = EstadoJuego.NO_INICIADO;
+    }
+
     static final Logger logger = Logger.getLogger(GameManagerImpl.class.getName());
-
-    protected Map<String, Usuarios> usuarios;
-    private List<Juego> listajuegos;
-    private List<Usuarios> listausuarios;
-    private List<Objeto> listaObjetos;
-
-
-
-    GameManagerImpl(){
-        this.usuarios= new HashMap<>(); //Clave=id, valor es el user como tal
-        this.listajuegos = new ArrayList<>();
-        this.listausuarios=new ArrayList<>();
-        this.listaObjetos=new ArrayList<>();
+    public enum EstadoJuego {
+        NO_INICIADO, INICIADO_EN_PREPARACION,INICIADO_EN_FUNCIONAMIENTO, FINALIZADO;
     }
-    @Override
-    public Juego createJuego(String idJuego, int equipos, int personas) {
 
-        Juego g = getJuego(idJuego);
-        if(g==null){ //=null es que no lo hemos encontrado, asi que se puede crear
-            g = new Juego(idJuego,equipos,personas);
-            listajuegos.add(g);
-            logger.info("Juego " + idJuego + "añadido con"+ equipos +" numero de equipos "+ personas + "numero de personas" );
-            return g;
+    @Override
+    public void crearJuego(int numeroEquipos, int numeroPersonas) {
+
+        if (estado != EstadoJuego.NO_INICIADO) {
+            logger.info("El juego ya está en marcha");
+            return;
         }
-        logger.info("Ya hay un juego con este id que funcione");
-        return null;
-    }
+        IntStream.rangeClosed(1, numeroEquipos).forEach(i -> {   //Bucle random que he encontrado por internet pero que es funcional <3
+            Equipo equipo = new Equipo("Equipo " + i);
+            IntStream.rangeClosed(1, numeroPersonas).forEach(j -> {
+                Usuario persona = new Usuario("Jugador " + j);
+                equipo.agregarJugador(persona);
+            });
+            listaEquipos.add(equipo);
+        });
+        estado = EstadoJuego.INICIADO_EN_PREPARACION;
+        logger.info("El juego se ha creado correctamente");
 
-    @Override
-    public Usuarios addUsuario(String idUsuario, String nombre, String apellido1, String apellido2) {
-
-        Usuarios user =getUsuario(idUsuario);
-
-        if(user != null) {
-
-            logger.info("Usuario con este correo ya existente");
-
-        }
-        else{
-            user= new Usuarios(idUsuario,nombre,apellido1,apellido2);
-            this.listausuarios.add(user);
-            logger.info("Usuario añadido correctamente");
-
-        }
-        return user;
     }
 
 
     @Override
-    public void addObject(String idObjeto, String descripcion, double precio) {
+    public void añadirUsuario(String id, String nombre, String apellido1, String apellido2) {
 
-        Objeto objeto = new Objeto(idObjeto, descripcion, precio);
-        this.listaObjetos.add(objeto);
-        logger.info("Nuevo objeto añadido: " + idObjeto);
+        this.listaUsuarios.add(new Usuario(id, nombre, apellido1, apellido2));
+        logger.info("El usuario se ha registrado correctamente");
     }
 
     @Override
-    public Objeto realizarCompra(String idUsuario, String idObjeto) {
+    public void añadirProducto(String id, String descripcion, double precio) {
 
-        Usuarios user= getUsuario(idUsuario);
-        if(user==null){
-            logger.info ("El usuario con id "+idUsuario+" no existe");
+        this.listaProductos.add(new Producto(id, descripcion, precio));
+        logger.info("El producto se ha añadido correctamente");
+
+    }
+
+    @Override
+    public Producto realizarCompra(String idProducto, String idUsuario) {
+
+        Usuario usuario= getUsuario(idUsuario);
+        if(usuario==null){
+            logger.info ("El usuario con id "+ idUsuario+ " no existe");
         }
         else{
-            Objeto objeto= getObjetoporNombre(idObjeto);
-            if(user.getDsaCoins()<objeto.getPrecio()){
+            Producto producto = getProducto(idProducto);
+            if(usuario.getDsaCoins()<producto.getPrecio()){
                 logger.info("Eres muy pobre no puedes comprarlo");
             }
             else{
-                user.getListaObjetosComprados().add(objeto);
-                double saldo =user.getDsaCoins() - objeto.getPrecio();
-                user.setDsaCoins(saldo);
-                logger.info("Objeto"+idObjeto+"comprado");
+                usuario.getListaObjetosComprados().add(producto);
+                double saldo =usuario.getDsaCoins() - producto.getPrecio();
+                usuario.setDsaCoins(saldo);
+                logger.info("Objeto "+idProducto+" comprado");
                 logger.info(idUsuario+",tu saldo restante es de "+saldo+" dsaCoins");
-                return objeto;
+                return producto;
 
             }
         }
@@ -104,100 +115,155 @@ public class GameManagerImpl implements GameManager {
     }
 
     @Override
-    public Juego iniciarJuego(String idjuego, String idUsuario) {
+    public void iniciarPartida(String idUsuario) {
 
-        Juego g = getJuego(idjuego);
-        Usuarios u = getUsuario(idUsuario);
-        if(g==null || u==null){ //En este caso, o no existe el player o la partida
-            logger.info("El jugador no existe");
-            return null;
+        if (estado == EstadoJuego.NO_INICIADO) {
+            logger.info("El juego no ha sido creado todavía");
+            return;
         }
-        if(u.getJugando()==true){
-            logger.info("El jugador ya está en una partida");
-            return null;
+        Usuario usuario= getUsuario(idUsuario);
+        if (usuario==null) {
+            logger.info("El usuario " + idUsuario + " no existe");
+            return;
+        }
+        if (usuario.getPartida() != null) {
+            logger.info("El usuario " + idUsuario + " ya tiene una partida activa");
+            return;
         }
 
-        logger.info("Añadiendo a un equipo al usuario "+ u.getIdUsuario());
-        this.usuarios.get(idUsuario).añadiraEquipo(g);
+        Equipo equipo = obtenerEquipoDisponible();
+        equipo.agregarJugador(usuario);
+        usuario.setEquipo(equipo);
+        usuario.setPartida(new Partida(equipo));
+        logger.info("El usuario " + idUsuario + " ha sido asignado al equipo " + equipo.getId());
 
-        Partidas partidas = new Partidas(idUsuario,idjuego); //Trobat a internet lo de la date
-        logger.info("Añadiendo a la partida al usuario "+ u.getIdUsuario());
-        logger.info("INICIADO EN FUNCIONAMIENTO");
-        this.usuarios.get(idUsuario).añadirPartida(partidas);
-        return g;
-    }
-
-    @Override
-    public String getEstadoActual(String idUsuario) {
-        return null;
-    }
-
-    @Override
-    public Juego restarVidas(String idjuego, int restavidas) {
-        return null;
-    }
-
-    @Override
-    public List<Juego> getVidasUsauario(String idUsuario) {
-
-        return null;
-    }
-
-    @Override
-    public List<Juego> getVidaEquipo(String nombreEquipo) {
-        return null;
-    }
-
-    @Override
-    public Usuarios finalizarPartida(String idUsuario) {
-        Partidas m = getPartidasdeUsuario(idUsuario);
-        if(m!=null){
-            this.usuarios.get(idUsuario).setJugando(false);
-            logger.info("El usuario " + idUsuario +" ha finalizado la partida");
-            return this.usuarios.get(idUsuario);
+        if (todosEquiposCompletos()) {
+            estado = EstadoJuego.INICIADO_EN_FUNCIONAMIENTO;
+            logger.info("¡La partida ha comenzado!");
         }
-        return null;
     }
 
-    public Juego getJuego(String idJuego){
 
-        logger.info("Buscando juego con id " + idJuego);
-        for(Juego g: this.listajuegos){
-            if(g.getIdJuego().equals(idJuego)){ //Si el juego existe en mi lista de juegos
-                logger.info("Juego encontrado! " + g.getDescripcion());
-                return g;
+    @Override
+    public String consultarEstado() {
+        String estadoActual = null;
+        switch (estado) {
+            case NO_INICIADO:
+                estadoActual = "El juego no ha sido iniciado";
+                break;
+            case INICIADO_EN_PREPARACION:
+                estadoActual = "El juego ha sido iniciado y está en preparación";
+                break;
+            case INICIADO_EN_FUNCIONAMIENTO:
+                estadoActual = "El juego ha sido iniciado y está en funcionamiento";
+                break;
+            case FINALIZADO:
+                estadoActual = "El juego ha finalizado";
+                break;
+        }
+        logger.info(estadoActual);
+        return estadoActual;
+    }
+
+    @Override
+    public void actualizarVida(String idUsuario, int vida) {
+
+
+        if (estado != EstadoJuego.INICIADO_EN_FUNCIONAMIENTO) {
+            logger.info("No hay una partida en activo");
+        }
+
+        Usuario usuario = getUsuario(idUsuario);
+        if (usuario == null) {
+            logger.info("El usuario no existe");
+        }
+
+        int nuevaVida = usuario.getVida() - vida;
+        if (nuevaVida <= 0) {
+            nuevaVida = 0;
+            logger.info(idUsuario + "has muerto");
+        }
+        usuario.setVida(nuevaVida);
+
+        logger.info(idUsuario + " te queda " + nuevaVida);
+    }
+    @Override
+    public int consultarVida(String idUsuario) {
+        Usuario usuario= getUsuario(idUsuario);
+        if (usuario==null) {
+            logger.info("El usuario " + idUsuario + " no existe");
+            return -1;
+        }
+        if (usuario.getPartida() == null) {
+            logger.info("El usuario " + idUsuario + " no está en una partida");
+            return -2;
+        }
+        logger.info("La vida del usuario"+idUsuario+" es " + usuario.getVida());
+        return usuario.getVida();
+    }
+
+
+    @Override
+    public int consultarVidaEquipo(String idEquipo) {
+        Equipo equipo = obtenerEquipo(idEquipo);
+        int totalVida = 0;
+        for (Usuario jugador : equipo.getJugadores()) {
+            totalVida += jugador.getVida();
+        }
+        return totalVida;
+    }
+
+    @Override
+    public void finalizarJuego() {
+
+        if (estado != EstadoJuego.INICIADO_EN_FUNCIONAMIENTO) {
+            logger.info("La partida no está en funcionamiento");
+            return;
+        }
+        estado = EstadoJuego.FINALIZADO;
+        logger.info("La partida ha terminado");
+    }
+    private Equipo obtenerEquipoDisponible() {
+        for (Equipo equipo : listaEquipos) {
+            if (!equipo.estaCompleto()) {
+                return equipo;
             }
         }
-        logger.info("Juego no encontrado");
+        return null;
+    }
+    public Equipo obtenerEquipo(String idEquipo) {
+        for (Equipo equipo : listaEquipos) {
+            if (equipo.getId() == idEquipo) {
+                return equipo;
+            }
+        }
         return null;
     }
 
-    public Usuarios getUsuario(String idUsuario) {
-        logger.info("Buscando usuario con " + idUsuario);
-        if(this.usuarios.get(idUsuario)==null){
-            logger.info("Jugador no encontrado");
-            return null;
+    private boolean todosEquiposCompletos() {
+        for (Equipo equipo : listaEquipos) {
+            if (!equipo.estaCompleto()) {
+                return false;
+            }
         }
-        return this.usuarios.get(idUsuario);
+        return true;
     }
-    public Objeto getObjetoporNombre(String name) {
-        for (Objeto o: this.listaObjetos) {
-            if(o.getIdObjeto().equals(name)) {
+    public Usuario getUsuario(String idUsuario) {
+        for (Usuario u: this.listaUsuarios) {
+            if(u.getId().equals(idUsuario)) {
+                return u;
+            }
+        }
+        return null;
+    }
+
+    public Producto getProducto(String idProducto) {
+        for (Producto o: this.listaProductos) {
+            if(o.getId().equals(idProducto)) {
                 return o;
             }
         }
         return null;
     }
-    public Partidas getPartidasdeUsuario(String idUsuario) {
-        Usuarios u = getUsuario(idUsuario);
-        logger.info("Buscando la ultima partida hecha por el usuario "+idUsuario);
-        if(u.getJugando()==true){
-            Partidas m = u.getHistorial().get(u.getHistorial().size()-1);
-            logger.info("");
-            return m;
-        }
-        logger.info("No se puede encontrar la partida");
-        return null;
-    }
-}
 
+}
